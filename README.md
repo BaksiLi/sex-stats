@@ -15,7 +15,7 @@ It works on both iOS (iPhone) and WatchOS (Apple Watch). It is also proudly prod
 The script is run by:
 
 ```
-python sex-stats.py [-h] --file FILE (--chart CHART | --all)
+python sex_stats.py [-h] --file FILE (--chart CHART | --all)
 ```
 
 N.B. Python >= 3.8 required, other dependencies are pandas, matplotlib, and seaborn.
@@ -25,10 +25,10 @@ Data is fake.
 
 - All-in-one
 ![Example: All in one](./assets/example-stats.png)
-by `python sex-stats.py -f FILE --all`.
+by `python sex_stats.py -f FILE --all`.
 
 - Individual charts
-can be generated at once by `python sex-stats.py -f FILE --chart all`.
+can be generated at once by `python sex_stats.py -f FILE --chart all`.
 
 ![Example: Frequency](./assets/example-freq.png)
 ![Example: Day](./assets/example-day.png)
