@@ -11,7 +11,7 @@ import seaborn as sns
 from matplotlib.gridspec import GridSpec
 from pandas import DataFrame, read_csv, to_datetime
 
-__version__ = '1.1 (i-miss-you)'
+__version__ = '1.2 (i-miss-you)'
 
 
 class Regex(str, Enum):
@@ -206,6 +206,7 @@ def cli_parsed():
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--chart',
+                       choices=['freq', 'day', 'kde', 'all'],
                        help='Specify charts to plot \
                              (options: freq, day, kde, all).')
     group.add_argument('--all',
