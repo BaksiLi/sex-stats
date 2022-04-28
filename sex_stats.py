@@ -9,9 +9,9 @@ from typing import NamedTuple, Optional
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.gridspec import GridSpec
-from pandas import DataFrame, to_datetime
+from pandas import DataFrame, read_csv, to_datetime
 
-__version__ = '1.0 (i-miss-you)'
+__version__ = '1.1 (i-miss-you)'
 
 
 class Regex(str, Enum):
@@ -73,7 +73,7 @@ def parse_log_line(line: str) -> LogLine:
                        matched['Kind'])
 
 
-def read_activity_log(fp: str, header: int = 1):
+def read_activity_log(fp: str, header: int = 1) -> DataFrame:
     """Reads Sex Activity Log file.
     """
     with open(fp, 'r') as f:
@@ -81,6 +81,20 @@ def read_activity_log(fp: str, header: int = 1):
         df['TimeStamp'] = to_datetime(df.TimeStamp)
         # df.set_index('TimeStamp')
         return df
+
+def read_activity_whealth(fp: str):
+    """Reads Sex Activity data from wHealth.
+    """
+    df = read_csv(fp, sep=';')
+    
+    # clean data
+    df = df.drop(columns=['unit', 'name', 'source'], axis=1)\
+           .rename(columns={'startdate': 'TimeStamp', 'value': 'Repeat'})
+
+    df['TimeStamp'] = to_datetime(df.TimeStamp)
+    df['Kind'] = 'Unknown'
+
+    return df
 
 
 def group_data(df, offset_alias: str = 'M'):
@@ -100,7 +114,7 @@ def plot_freq_bar(df, offset_alias: str = 'M', ax=None, legend: bool = True):
     grouped = group_data(df, offset_alias)
     df_sum = grouped['Kind'].value_counts().unstack()
 
-    df_sum.set_index(df_sum.index.map(lambda s: s.strftime('%Y-%m')))\
+    df_sum.set_index(df_sum.index.map(lambda s: s.strftime('%y\n%m')))\
           .plot(rot=0, kind='bar', ax=ax, stacked=True, legend=legend)
     grouped['Repeat'].sum()\
                      .plot(style='--o',
@@ -112,7 +126,7 @@ def plot_freq_bar(df, offset_alias: str = 'M', ax=None, legend: bool = True):
 
     ax.set_title('Frequency vs Time Period')
     ax.set_ylabel('Frequency')
-    ax.set_ylabel(f'Period ({offset_alias})')
+    ax.set_xlabel(f'Period ({offset_alias})')
 
 
 def plot_density(df, ax=None, legend: bool = True):
@@ -122,7 +136,6 @@ def plot_density(df, ax=None, legend: bool = True):
         ax = plt.subplot()
 
     time_function = lambda x: (x.hour + round(x.minute/60, 1))
-    # time_function = lambda x: (x.hour)
 
     grouped = df.set_index('TimeStamp')\
                 .groupby(time_function)['Kind'].value_counts().unstack()
@@ -139,7 +152,6 @@ def plot_day_hour(df, ax=None, legend: bool = True):
         ax = plt.subplot()
 
     time_function = lambda x: (x.hour + round(x.minute/60, 1))
-    # time_function = lambda x: (x.hour)
 
     grouped = df.set_index('TimeStamp')\
                 .groupby(time_function)['Kind'].value_counts().unstack()
@@ -182,7 +194,7 @@ def plot_all(df):
     plot_freq_bar(df, ax=ax3, legend=False)
 
     handles, labels = ax.get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper right')
+    fig.legend(handles, labels, title='Kind', loc='upper right')
 
 
 def cli_parsed():
@@ -206,7 +218,10 @@ def cli_parsed():
 if __name__ == '__main__':
     args = cli_parsed().parse_args()
 
-    log_lines = read_activity_log(args.file)
+    if args.file.rsplit('.', 1)[-1] == 'csv':
+        log_lines = read_activity_whealth(args.file)
+    else:
+        log_lines = read_activity_log(args.file)
 
     plot_fns = {
         'freq': plot_freq_bar,
