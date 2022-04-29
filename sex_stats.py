@@ -82,11 +82,12 @@ def read_activity_log(fp: str, header: int = 1) -> DataFrame:
         # df.set_index('TimeStamp')
         return df
 
+
 def read_activity_whealth(fp: str):
     """Reads Sex Activity data from wHealth.
     """
     df = read_csv(fp, sep=';')
-    
+
     # clean data
     df = df.drop(columns=['unit', 'name', 'source'], axis=1)\
            .rename(columns={'startdate': 'TimeStamp', 'value': 'Repeat'})
@@ -141,6 +142,7 @@ def plot_density(df, ax=None, legend: bool = True):
                 .groupby(time_function)['Kind'].value_counts().unstack()
 
     grouped.plot.kde(ax=ax, legend=legend)
+
     ax.set_title('Kernel Density Estimation')
     ax.set_ylabel('Density')
 
@@ -156,10 +158,11 @@ def plot_day_hour(df, ax=None, legend: bool = True):
     grouped = df.set_index('TimeStamp')\
                 .groupby(time_function)['Kind'].value_counts().unstack()
 
-    # Mean (deprecated)
+    # Plot mean
     grouped_mean = grouped.mean(axis=1)  # .fillna(0)
     ax.plot(grouped_mean.index, grouped_mean, color='grey')
 
+    # Plot scattered points
     for kind in grouped.columns:
         plt.scatter(grouped.index, grouped[kind], label=kind)
 
@@ -179,11 +182,10 @@ def plot_all(df):
     """Plot all three charts in one large diagram.
     """
     fig = plt.figure(constrained_layout=True)
-    fig.suptitle('Sex Activity Statistics')
+    fig.suptitle(f'Sex Activity Statistics ({df.Repeat.size} entries)')
 
     gs = GridSpec(2, 2, figure=fig)
 
-    # ax = plt.subplot(211)
     ax = fig.add_subplot(gs[0, :])
     plot_day_hour(df, ax=ax, legend=False)
 
@@ -219,28 +221,26 @@ def cli_parsed():
 if __name__ == '__main__':
     args = cli_parsed().parse_args()
 
+    # Read dataset (csv and txt)
     if args.file.rsplit('.', 1)[-1] == 'csv':
         log_lines = read_activity_whealth(args.file)
     else:
         log_lines = read_activity_log(args.file)
 
+    # Plot settings
+    sns.set()
     plot_fns = {
         'freq': plot_freq_bar,
         'day': plot_day_hour,
         'kde': plot_density,
     }
 
-    sns.set()
-
-    try:
-        if args.all:
-            plot_all(log_lines)
-        elif args.chart == 'all':
-            for fn in plot_fns.values():
-                fn(log_lines)
-                plt.show()
-        elif args.chart in plot_fns:
-            plot_fns[args.chart](log_lines)
-        plt.show()
-    except KeyError:
-        print('Chart type not supported!')
+    if args.all:
+        plot_all(log_lines)
+    elif args.chart == 'all':
+        for fn in plot_fns.values():
+            fn(log_lines)
+            plt.show()
+    elif args.chart in plot_fns:
+        plot_fns[args.chart](log_lines)
+    plt.show()
