@@ -11,7 +11,7 @@ import seaborn as sns
 from matplotlib.gridspec import GridSpec
 from pandas import DataFrame, read_csv, to_datetime
 
-__version__ = '1.2 (i-miss-you)'
+__version__ = '1.3 (i-miss-you)'
 
 
 class Regex(str, Enum):
@@ -130,21 +130,42 @@ def plot_freq_bar(df, offset_alias: str = 'M', ax=None, legend: bool = True):
     ax.set_xlabel(f'Period ({offset_alias})')
 
 
+def time_function(df: DataFrame):
+    """Returns a function that calculates o’clock fractions.
+
+    Should I keep narrowing the divisions as the size goes bigger?
+        -> no, because < 1 min does not make sense. 6 mins already suffice.
+    """
+    data_size = df.shape[0]
+
+    def fn(x):
+        if data_size <= 50:  # use whole hour
+            step = round(x.minute/60)
+        elif data_size <= 100:  # use half division (every 30 mins)
+            step = round(x.minute/60*2)/2
+        elif data_size <= 200:  # use quatre division (every 15 mins)
+            step = round(x.minute/60*4)/4
+        else:  # use tenth division of hour (every 6 mins)
+            step = round(x.minute/60, 1)
+        return x.hour + step
+
+    return fn
+
+
 def plot_density(df, ax=None, legend: bool = True):
     """Plot KDE (Kernel Density Estimation).
     """
     if not ax:
         ax = plt.subplot()
 
-    time_function = lambda x: (x.hour + round(x.minute/60, 1))
-
     grouped = df.set_index('TimeStamp')\
-                .groupby(time_function)['Kind'].value_counts().unstack()
+                .groupby(time_function(df))['Kind'].value_counts().unstack()
 
     grouped.plot.kde(ax=ax, legend=legend)
 
     ax.set_title('Kernel Density Estimation')
     ax.set_ylabel('Density')
+    ax.set_xlabel('Repeated Times')
 
 
 def plot_day_hour(df, ax=None, legend: bool = True):
@@ -153,14 +174,12 @@ def plot_day_hour(df, ax=None, legend: bool = True):
     if not ax:
         ax = plt.subplot()
 
-    time_function = lambda x: (x.hour + round(x.minute/60, 1))
-
     grouped = df.set_index('TimeStamp')\
-                .groupby(time_function)['Kind'].value_counts().unstack()
+                .groupby(time_function(df))['Kind'].value_counts().unstack()
 
     # Plot mean
     grouped_mean = grouped.mean(axis=1)  # .fillna(0)
-    ax.plot(grouped_mean.index, grouped_mean, color='grey')
+    ax.plot(grouped_mean.index, grouped_mean, color='grey', linestyle='-', label='Mean')
 
     # Plot scattered points
     for kind in grouped.columns:
@@ -189,13 +208,13 @@ def plot_all(df):
     ax = fig.add_subplot(gs[0, :])
     plot_day_hour(df, ax=ax, legend=False)
 
-    ax2 = fig.add_subplot(gs[1, 1])
-    plot_density(df, ax=ax2, legend=False)
+    ax2 = fig.add_subplot(gs[1, 0])
+    plot_freq_bar(df, ax=ax2, legend=False)
 
-    ax3 = fig.add_subplot(gs[1, 0])
-    plot_freq_bar(df, ax=ax3, legend=False)
+    ax3 = fig.add_subplot(gs[1, 1])
+    plot_density(df, ax=ax3, legend=False)
 
-    handles, labels = ax.get_legend_handles_labels()
+    handles, labels = ax3.get_legend_handles_labels()
     fig.legend(handles, labels, title='Kind', loc='upper right')
 
 
